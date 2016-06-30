@@ -1,103 +1,118 @@
-%define __jar_repack 0
-%define debug_package %{nil}
-%define name         zookeeper
-%define _prefix      /opt
-%define _conf_dir    %{_sysconfdir}/zookeeper
-%define _log_dir     %{_var}/log/zookeeper
-%define _data_dir    %{_sharedstatedir}/zookeeper
+%{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 
-Summary: ZooKeeper is a centralized service for maintaining configuration information, naming, providing distributed synchronization, and providing group services.
+%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+
+%define _noarch_libdir /usr/lib 
+
+%define rel_ver 3.4.8
+
+Summary: High-performance coordination service for distributed applications.
 Name: zookeeper
-Version: %{version}
-Release: %{build_number}
-License: Apache License, Version 2.0
+Version: %{rel_ver}
+Release: 1
+License: Apache License v2.0
 Group: Applications/Databases
-URL: http://zookeper.apache.org/
-Source0: zookeeper-%{version}.tar.gz
-Source1: zookeeper.service
+URL: http://hadoop.apache.org/zookeeper/
+Source0: http://www.apache.org/dyn/closer.cgi/hadoop/zookeeper/zookeeper-%{rel_ver}/zookeeper-%{rel_ver}.tar.gz
+Source1: zookeeper.init
 Source2: zookeeper.logrotate
 Source3: zoo.cfg
 Source4: log4j.properties
-Source5: log4j-cli.properties
-Source6: zookeeper.sysconfig
-Source7: zkcli
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
-Prefix: %{_prefix}
-Vendor: Apache Software Foundation
-Packager: Ivan Dyachkov <ivan.dyachkov@klarna.com>
-Provides: zookeeper
-BuildRequires: systemd
-Requires(post): systemd
-Requires(preun): systemd
-Requires(postun): systemd
+Source5: java.env
+BuildRoot: %{_tmppath}/%{name}-%{rel_ver}-%{release}-root
+BuildRequires: python-devel,gcc,autoconf,automake,libtool,cppunit-devel
+Requires: logrotate, java, cppunit
+Requires(post): chkconfig initscripts
+Requires(pre): chkconfig initscripts
+AutoReqProv: no
 
 %description
-ZooKeeper is a centralized service for maintaining configuration information, naming, providing distributed synchronization, and providing group services. All of these kinds of services are used in some form or another by distributed applications. Each time they are implemented there is a lot of work that goes into fixing the bugs and race conditions that are inevitable. Because of the difficulty of implementing these kinds of services, applications initially usually skimp on them ,which make them brittle in the presence of change and difficult to manage. Even when done correctly, different implementations of these services lead to management complexity when the applications are deployed.
+ZooKeeper is a distributed, open-source coordination service for distributed
+applications. It exposes a simple set of primitives that distributed
+applications can build upon to implement higher level services for
+synchronization, configuration maintenance, and groups and naming. It is
+designed to be easy to program to, and uses a data model styled after the
+familiar directory tree structure of file systems. It runs in Java and has
+bindings for both Java and C.
+
+Coordination services are notoriously hard to get right. They are especially
+prone to errors such as race conditions and deadlock. The motivation behind
+ZooKeeper is to relieve distributed applications the responsibility of
+implementing coordination services from scratch.
+
+%define _zookeeper_noarch_libdir %{_noarch_libdir}/zookeeper
+%define _maindir %{buildroot}%{_zookeeper_noarch_libdir}
 
 %prep
-%setup
+%setup -q -n zookeeper-%{rel_ver}
 
 %build
+pushd src/c
+rm -rf aclocal.m4 autom4te.cache/ config.guess config.status config.log \
+    config.sub configure depcomp install-sh ltmain.sh libtool \
+    Makefile Makefile.in missing stamp-h1 compile
+autoheader
+libtoolize --force
+aclocal
+automake -a
+autoconf
+autoreconf
+%configure
+%{__make} %{?_smp_mflags}
+popd
+
+# Build Python interface
+cd src/contrib/zkpython
+python src/python/setup.py build_ext -L $PWD/../../c/.libs
 
 %install
-mkdir -p $RPM_BUILD_ROOT%{_prefix}/zookeeper
-mkdir -p $RPM_BUILD_ROOT%{_log_dir}
-mkdir -p $RPM_BUILD_ROOT%{_data_dir}
-mkdir -p $RPM_BUILD_ROOT%{_unitdir}/zookeeper.service.d
-mkdir -p $RPM_BUILD_ROOT%{_conf_dir}/
-install -p -D -m 644 zookeeper-%{version}.jar $RPM_BUILD_ROOT%{_prefix}/zookeeper/
-install -p -D -m 644 lib/*.jar $RPM_BUILD_ROOT%{_prefix}/zookeeper/
-install -p -D -m 755 %{S:1} $RPM_BUILD_ROOT%{_unitdir}/
-install -p -D -m 644 %{S:2} $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/zookeeper
-install -p -D -m 644 %{S:3} $RPM_BUILD_ROOT%{_conf_dir}/
-install -p -D -m 644 %{S:4} $RPM_BUILD_ROOT%{_conf_dir}/
-install -p -D -m 644 %{S:5} $RPM_BUILD_ROOT%{_conf_dir}/
-install -p -D -m 644 %{S:6} $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/zookeeper
-install -p -D -m 755 %{S:7} $RPM_BUILD_ROOT/usr/local/bin/zkcli
-install -p -D -m 644 conf/configuration.xsl $RPM_BUILD_ROOT%{_conf_dir}/
-# stupid systemd fails to expand file paths in runtime
-CLASSPATH=
-for i in $RPM_BUILD_ROOT%{_prefix}/zookeeper/*.jar
-do
-  CLASSPATH="%{_prefix}/zookeeper/$(basename ${i}):${CLASSPATH}"
-done
-echo "[Service]" > $RPM_BUILD_ROOT%{_unitdir}/zookeeper.service.d/classpath.conf
-echo "Environment=CLASSPATH=${CLASSPATH}" >> $RPM_BUILD_ROOT%{_unitdir}/zookeeper.service.d/classpath.conf
+rm -rf %{buildroot}
+install -p -d %{buildroot}%{_zookeeper_noarch_libdir}
+cp -a bin lib %{buildroot}%{_zookeeper_noarch_libdir}
+
+# Copy all necessary lib files etc.
+mkdir -p %{buildroot}%{_sysconfdir}/zookeeper
+install -p -D -m 644 zookeeper-%{rel_ver}.jar %{buildroot}%{_zookeeper_noarch_libdir}/zookeeper-%{rel_ver}.jar
+install -p -D -m 755 %{S:1} %{buildroot}%{_initrddir}/zookeeper
+install -p -D -m 644 %{S:2} %{buildroot}%{_sysconfdir}/logrotate.d/zookeeper
+install -p -D -m 644 %{S:3} %{buildroot}%{_sysconfdir}/zookeeper/zoo.cfg
+install -p -D -m 644 %{S:4} %{buildroot}%{_sysconfdir}/zookeeper/log4j.properties
+install -p -D -m 644 %{S:5} %{buildroot}%{_sysconfdir}/zookeeper/java.env
+install -p -D -m 644 conf/configuration.xsl %{buildroot}%{_sysconfdir}/zookeeper/configuration.xsl
+install -d %{buildroot}%{_sbindir}
+install -d %{buildroot}%{_bindir}
+ln -sf %{_zookeeper_noarch_libdir}/bin/zkServer.sh %{buildroot}%{_sbindir}/zookeeper-server
+ln -sf %{_zookeeper_noarch_libdir}/bin/zkCleanup.sh %{buildroot}%{_sbindir}/zookeeper-cleanup
+ln -sf %{_zookeeper_noarch_libdir}/bin/zkCli.sh %{buildroot}%{_bindir}/zookeeper-cli
+install -d %{buildroot}%{_localstatedir}/log/zookeeper
+install -d %{buildroot}%{_localstatedir}/lib/zookeeper
+install -d %{buildroot}%{_localstatedir}/lib/zookeeper/data
+install -p -d -D -m 0755 %{buildroot}%{_datadir}/zookeeper
+
+%{makeinstall} -C src/c
+
+# Kludge for ugly default path
+# mv %{buildroot}%{_includedir}/c-client-src %{buildroot}%{_includedir}/zookeeper
+
+cd src/contrib/zkpython
+python src/python/setup.py install --install-lib %{buildroot}%{python_sitearch}
 
 %clean
-rm -rf $RPM_BUILD_ROOT
-
-%pre
-/usr/bin/getent group zookeeper >/dev/null || /usr/sbin/groupadd -r zookeeper
-if ! /usr/bin/getent passwd zookeeper >/dev/null ; then
-    /usr/sbin/useradd -r -g zookeeper -m -d %{_prefix}/zookeeper -s /bin/bash -c "Zookeeper" zookeeper
-fi
-
-%post
-%systemd_post zookeeper.service
-
-%preun
-%systemd_preun zookeeper.service
-
-%postun
-# When the last version of a package is erased, $1 is 0
-# Otherwise it's an upgrade and we need to restart the service
-if [ $1 -ge 1 ]; then
-    /usr/bin/systemctl restart zookeeper.service
-fi
-/usr/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+rm -rf %{buildroot}
 
 %files
-%defattr(-,root,root)
-%{_unitdir}/zookeeper.service
-%{_unitdir}/zookeeper.service.d/classpath.conf
-/usr/local/bin/zkcli
+%defattr(-,root,root,-)
+%doc CHANGES.txt LICENSE.txt NOTICE.txt README.txt
+%doc docs recipes
+%dir %attr(0750, zookeeper, zookeeper) %{_localstatedir}/lib/zookeeper
+%dir %attr(0750, zookeeper, zookeeper) %{_localstatedir}/lib/zookeeper/data
+%dir %attr(0750, zookeeper, zookeeper) %{_localstatedir}/log/zookeeper
+%{_zookeeper_noarch_libdir}
+%{_initrddir}/zookeeper
 %config(noreplace) %{_sysconfdir}/logrotate.d/zookeeper
-%config(noreplace) %{_sysconfdir}/sysconfig/zookeeper
-%config(noreplace) %{_conf_dir}/*
-%attr(-,zookeeper,zookeeper) %{_prefix}/zookeeper
-%attr(0755,zookeeper,zookeeper) %dir %{_log_dir}
-%attr(0700,zookeeper,zookeeper) %dir %{_data_dir}
+%config(noreplace) %{_sysconfdir}/zookeeper
+%{_sbindir}
+%{_bindir}
 
 # ------------------------------ libzookeeper ------------------------------
 
@@ -108,13 +123,13 @@ BuildRequires: gcc
 
 %description -n libzookeeper
 The client supports two types of APIs -- synchronous and asynchronous.
-
+ 
 Asynchronous API provides non-blocking operations with completion callbacks and
 relies on the application to implement event multiplexing on its behalf.
-
+ 
 On the other hand, Synchronous API provides a blocking flavor of
 zookeeper operations and runs its own event loop in a separate thread.
-
+ 
 Sync and Async APIs can be mixed and matched within the same application.
 
 %files -n libzookeeper
@@ -140,3 +155,47 @@ developing with libzookeeper.
 %{_libdir}/*.a
 %{_libdir}/*.la
 %{_libdir}/*.so
+
+# ------------------------------ Python ------------------------------
+
+%package -n python-zookeeper
+Summary: Python client library for ZooKeeper
+Group: Development/Libraries
+Requires: python, libzookeeper
+
+%description -n python-zookeeper
+Python client library for ZooKeeper.
+
+%files -n python-zookeeper
+%defattr(-, root, root, -)
+%doc src/contrib/zkpython/README src/contrib/zkpython/src/python/zk.py
+%{python_sitearch}
+
+# ======================================================================================
+
+%pre
+getent group zookeeper >/dev/null || groupadd -r zookeeper
+getent passwd zookeeper >/dev/null || useradd -r -g zookeeper -d / -s /sbin/nologin zookeeper
+exit 0
+
+%post
+/sbin/chkconfig --add zookeeper
+
+%preun
+if [ $1 = 0 ] ; then
+    /sbin/service zookeeper stop >/dev/null 2>&1
+    /sbin/chkconfig --del zookeeper
+fi
+
+%postun
+if [ "$1" -ge "1" ] ; then
+    /sbin/service zookeeper condrestart >/dev/null 2>&1 || :
+fi
+
+%changelog
+* Fri Apr  6 2012 Ed Marshall <esm@logic.net> - 3.3.5-1
+- Updated to 3.3.5.
+- Added several missing build and install requirements.
+
+* Fri Nov 12 2010  Daniel Lundin <dln@eintr.org> - 3.3.2-2
+- Update to 3.3.2
