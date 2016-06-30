@@ -99,3 +99,44 @@ fi
 %attr(0755,zookeeper,zookeeper) %dir %{_log_dir}
 %attr(0700,zookeeper,zookeeper) %dir %{_data_dir}
 
+# ------------------------------ libzookeeper ------------------------------
+
+%package -n libzookeeper
+Summary: C client interface to zookeeper server
+Group: Development/Libraries
+BuildRequires: gcc
+
+%description -n libzookeeper
+The client supports two types of APIs -- synchronous and asynchronous.
+
+Asynchronous API provides non-blocking operations with completion callbacks and
+relies on the application to implement event multiplexing on its behalf.
+
+On the other hand, Synchronous API provides a blocking flavor of
+zookeeper operations and runs its own event loop in a separate thread.
+
+Sync and Async APIs can be mixed and matched within the same application.
+
+%files -n libzookeeper
+%defattr(-, root, root, -)
+%doc src/c/README src/c/LICENSE
+%{_libdir}/libzookeeper_mt.so.*
+%{_libdir}/libzookeeper_st.so.*
+
+# ------------------------------ libzookeeper-devel ------------------------------
+
+%package -n libzookeeper-devel
+Summary: Headers and static libraries for libzookeeper
+Group: Development/Libraries
+Requires: gcc
+
+%description -n libzookeeper-devel
+This package contains the libraries and header files needed for
+developing with libzookeeper.
+
+%files -n libzookeeper-devel
+%defattr(-, root, root, -)
+%{_includedir}
+%{_libdir}/*.a
+%{_libdir}/*.la
+%{_libdir}/*.so
