@@ -111,8 +111,9 @@ rm -rf %{buildroot}
 %{_initrddir}/zookeeper
 %config(noreplace) %{_sysconfdir}/logrotate.d/zookeeper
 %config(noreplace) %{_sysconfdir}/zookeeper
-%{_sbindir}
-%{_bindir}
+%{_sbindir}/zookeeper-server
+%{_sbindir}/zookeeper-cleanup
+%{_bindir}/zookeeper-cli
 
 # ------------------------------ libzookeeper ------------------------------
 
