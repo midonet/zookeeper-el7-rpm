@@ -1,17 +1,21 @@
 zookeeper-redhat7-rpm
 ---------
-A set of scripts to package zookeeper into an rpm.
+
+A set of scripts to package zookeeper for EL.
 Requires CentOS/RedHat 7.
 
 Setup
 -----
-    sudo yum install make rpmdevtools
+Install build dependencies:
+
+    sudo yum install -y make rpmdevtools wget python-devel gcc autoconf automake libtool cppunit-devel
 
 Building
 --------
+
     make rpm
 
-Resulting RPM will be avaliable at $(shell pwd)/x86_64
+Resulting RPMs will be avaliable at $(shell pwd)/x86_64
 
 Installing and operating
 ------------------------
@@ -19,11 +23,8 @@ Installing and operating
     sudo systemctl start zookeeper
     sudo systemctl enable zookeeper
 
-Zookeeper shell is available via /usr/local/bin/zkcli or just zkcli since /usr/local/bin is usually in the $PATH.
-
 Default locations
 -----------------
-binaries: /opt/zookeeper  
 data:     /var/lib/zookeeper  
 logs:     /var/log/zookeeper  
 configs:  /etc/zookeeper, /etc/sysconfig/zookeeper  
