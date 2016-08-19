@@ -114,6 +114,10 @@ rm -rf %{buildroot}
 %{_sbindir}/zookeeper-server
 %{_sbindir}/zookeeper-cleanup
 %{_bindir}/zookeeper-cli
+%{_bindir}/cli_mt
+%{_bindir}/cli_st
+%{_bindir}/load_gen
+
 
 # ------------------------------ libzookeeper ------------------------------
 
