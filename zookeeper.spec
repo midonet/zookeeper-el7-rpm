@@ -9,7 +9,7 @@
 Summary: High-performance coordination service for distributed applications.
 Name: zookeeper
 Version: %{rel_ver}
-Release: 3
+Release: 4
 License: Apache License v2.0
 Group: Applications/Databases
 URL: http://hadoop.apache.org/zookeeper/
@@ -169,6 +169,7 @@ Summary: Python client library for ZooKeeper
 Group: Development/Libraries
 Requires: python, libzookeeper
 Obsoletes: zkpython < %{rel_ver}
+Provides: zkpython
 
 %description -n python-zookeeper
 Python client library for ZooKeeper.
