@@ -2,14 +2,14 @@
 
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
-%define _noarch_libdir /usr/lib 
+%define _noarch_libdir /usr/lib
 
 %define rel_ver 3.4.8
 
 Summary: High-performance coordination service for distributed applications.
 Name: zookeeper
 Version: %{rel_ver}
-Release: 1
+Release: 4
 License: Apache License v2.0
 Group: Applications/Databases
 URL: http://hadoop.apache.org/zookeeper/
@@ -125,16 +125,17 @@ rm -rf %{buildroot}
 Summary: C client interface to zookeeper server
 Group: Development/Libraries
 BuildRequires: gcc
+Obsoletes: zookeeper-lib < %{rel_ver}
 
 %description -n libzookeeper
 The client supports two types of APIs -- synchronous and asynchronous.
- 
+
 Asynchronous API provides non-blocking operations with completion callbacks and
 relies on the application to implement event multiplexing on its behalf.
- 
+
 On the other hand, Synchronous API provides a blocking flavor of
 zookeeper operations and runs its own event loop in a separate thread.
- 
+
 Sync and Async APIs can be mixed and matched within the same application.
 
 %files -n libzookeeper
@@ -167,6 +168,8 @@ developing with libzookeeper.
 Summary: Python client library for ZooKeeper
 Group: Development/Libraries
 Requires: python, libzookeeper
+Obsoletes: zkpython < %{rel_ver}
+Provides: zkpython
 
 %description -n python-zookeeper
 Python client library for ZooKeeper.
