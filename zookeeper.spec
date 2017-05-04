@@ -9,7 +9,7 @@
 Summary: High-performance coordination service for distributed applications.
 Name: zookeeper
 Version: %{rel_ver}
-Release: 1
+Release: 1.%{getenv:DISTRIBUTION}
 License: Apache License v2.0
 Group: Applications/Databases
 URL: http://hadoop.apache.org/zookeeper/
@@ -21,9 +21,9 @@ Source4: log4j.properties
 Source5: java.env
 BuildRoot: %{_tmppath}/%{name}-%{rel_ver}-%{release}-root
 BuildRequires: python-devel,gcc,autoconf,automake,libtool,cppunit-devel
-Requires: logrotate, java, cppunit
-Requires(post): chkconfig initscripts
-Requires(pre): chkconfig initscripts
+Requires: logrotate, java-headless
+Requires(post): %{getenv:REQUIRES_PRE_POST}
+Requires(pre): %{getenv:REQUIRES_PRE_POST}
 AutoReqProv: no
 
 %description
