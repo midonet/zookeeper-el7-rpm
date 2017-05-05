@@ -7,11 +7,24 @@ TOPDIR = /tmp/zookeeper-rpm
 PWD = $(shell pwd)
 URL = $(shell curl -s https://www.apache.org/dyn/closer.cgi/zookeeper/zookeeper-$(VERSION)/zookeeper-$(VERSION).tar.gz?asjson=1 | python -c 'import sys,json; data=json.load(sys.stdin); print data["preferred"] + data["path_info"]')
 
-rpm: $(SOURCE)
-	@rpmbuild -v -bb \
+rhel: $(SOURCE)
+	@DISTRIBUTION=el7 \
+	 REQUIRES_PRE_POST="chkconfig initscripts" \
+	 rpmbuild -v -bb \
 			--define "_sourcedir $(PWD)" \
 			--define "_rpmdir $(PWD)" \
-			--define "_topdir $(TOPDIR)" \
+			--define "_topdir $(TOPDIR)-el7" \
+			--define "version $(VERSION)" \
+			--define "build_number $(BUILD_NUMBER)" \
+			zookeeper.spec
+
+sles: $(SOURCE)
+	@DISTRIBUTION=sles \
+	 REQUIRES_PRE_POST="aaa_base" \
+	 rpmbuild -v -bb \
+			--define "_sourcedir $(PWD)" \
+			--define "_rpmdir $(PWD)" \
+			--define "_topdir $(TOPDIR)-sles" \
 			--define "version $(VERSION)" \
 			--define "build_number $(BUILD_NUMBER)" \
 			zookeeper.spec
