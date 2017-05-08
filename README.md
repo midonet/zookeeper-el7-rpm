@@ -18,7 +18,7 @@ Building
 --------
 To build RedHat packages:
 
-    make rhel
+    make rpm
 
 To build SLES packages:
 

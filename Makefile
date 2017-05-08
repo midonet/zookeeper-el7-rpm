@@ -7,7 +7,7 @@ TOPDIR = /tmp/zookeeper-rpm
 PWD = $(shell pwd)
 URL = $(shell curl -s https://www.apache.org/dyn/closer.cgi/zookeeper/zookeeper-$(VERSION)/zookeeper-$(VERSION).tar.gz?asjson=1 | python -c 'import sys,json; data=json.load(sys.stdin); print data["preferred"] + data["path_info"]')
 
-rhel: $(SOURCE)
+rpm: $(SOURCE)
 	@DISTRIBUTION=el7 \
 	 REQUIRES_PRE_POST="chkconfig initscripts" \
 	 rpmbuild -v -bb \
